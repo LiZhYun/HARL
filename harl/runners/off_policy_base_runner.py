@@ -3,6 +3,7 @@ import os
 import time
 import torch
 import numpy as np
+import wandb
 import setproctitle
 from harl.common.valuenorm import ValueNorm
 from torch.distributions import Categorical
@@ -33,6 +34,7 @@ class OffPolicyBaseRunner:
             env_args: arguments related to env, loaded from config file and updated with unparsed command-line arguments.
         """
         self.args = args
+        self.use_wandb = args["use_wandb"]
         self.algo_args = algo_args
         self.env_args = env_args
 
@@ -596,6 +598,8 @@ class OffPolicyBaseRunner:
                         f"Eval average episode reward is {eval_avg_rew}, eval average episode length is {eval_avg_len}.\n"
                     )
                 if "smac" in self.args["env"]:
+                    if self.use_wandb:
+                        wandb.log({"eval_win_rate": eval_battles_won / eval_episode}, step=step)
                     self.log_file.write(
                         ",".join(
                             map(
@@ -629,6 +633,8 @@ class OffPolicyBaseRunner:
                     self.log_file.write(
                         ",".join(map(str, [step, eval_avg_rew, eval_avg_len])) + "\n"
                     )
+                if self.use_wandb:
+                    wandb.log({"eval_average_episode_rewards": eval_avg_rew}, step=step)
                 self.log_file.flush()
                 self.writter.add_scalar(
                     "eval_average_episode_rewards", eval_avg_rew, step

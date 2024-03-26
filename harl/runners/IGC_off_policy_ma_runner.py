@@ -80,18 +80,18 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
             if self.args["algo"] in ["hasac", "igcsac"]:
                 actions = []
                 logp_actions = []
-                with torch.no_grad():
-                    for agent_id in range(self.num_agents):
-                        action, logp_action = self.actor[
-                            agent_id
-                        ].get_actions_with_logprobs(
-                            sp_obs[agent_id],
-                            sp_available_actions[agent_id]
-                            if sp_available_actions is not None
-                            else None,
-                        )
-                        actions.append(action)
-                        logp_actions.append(logp_action)
+                # with torch.no_grad():
+                for agent_id in range(self.num_agents):
+                    action, logp_action = self.actor[
+                        agent_id
+                    ].get_actions_with_logprobs(
+                        sp_obs[agent_id],
+                        sp_available_actions[agent_id]
+                        if sp_available_actions is not None
+                        else None,
+                    )
+                    actions.append(action)
+                    logp_actions.append(logp_action)
                 actions = torch.stack(actions, dim=1)
                 bias_, action_std = self.action_attention(actions, torch.unsqueeze(check(sp_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
                 # ind_dist = FixedNormal(logits, stds)

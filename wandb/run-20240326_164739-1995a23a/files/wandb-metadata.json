@@ -1,0 +1,93 @@
+{
+    "os": "Linux-6.5.0-25-generic-x86_64-with-glibc2.17",
+    "python": "3.8.18",
+    "heartbeatAt": "2024-03-26T08:47:46.705153",
+    "startedAt": "2024-03-26T08:47:39.423652",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--algo",
+        "hasac",
+        "--env",
+        "mamujoco",
+        "--scenario",
+        "Ant-v2",
+        "--agent_conf",
+        "4x2",
+        "--n_rollout_threads",
+        "2",
+        "--n_eval_rollout_threads",
+        "2"
+    ],
+    "state": "running",
+    "program": "/home/zhiyuan/RL/Multi-agent/code/HARL/examples/train.py",
+    "codePathLocal": "examples/train.py",
+    "codePath": "examples/train.py",
+    "git": {
+        "remote": "https://github.com/LiZhYun/HARL.git",
+        "commit": "0f6a402a92ed8b7b68526bf621ecb8320996f84d"
+    },
+    "email": "zhiyuanli@std.uestc.edu.cn",
+    "root": "/home/zhiyuan/RL/Multi-agent/code/HARL",
+    "host": "zhiyuan-ThinkCentre-M8600t-D065",
+    "username": "zhiyuan",
+    "executable": "/home/zhiyuan/miniconda3/envs/bpta/bin/python",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 3592.2252499999995,
+        "min": 800.0,
+        "max": 4000.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3866.969,
+            "min": 800.0,
+            "max": 4000.0
+        },
+        {
+            "current": 3752.223,
+            "min": 800.0,
+            "max": 4000.0
+        },
+        {
+            "current": 3523.848,
+            "min": 800.0,
+            "max": 4000.0
+        },
+        {
+            "current": 3884.081,
+            "min": 800.0,
+            "max": 4000.0
+        },
+        {
+            "current": 3848.597,
+            "min": 800.0,
+            "max": 4000.0
+        },
+        {
+            "current": 3694.904,
+            "min": 800.0,
+            "max": 4000.0
+        },
+        {
+            "current": 3684.281,
+            "min": 800.0,
+            "max": 4000.0
+        },
+        {
+            "current": 3836.444,
+            "min": 800.0,
+            "max": 4000.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 915.3213348388672,
+            "used": 64.7675552368164
+        }
+    },
+    "memory": {
+        "total": 15.54074478149414
+    }
+}
