@@ -1,6 +1,7 @@
 """Tools for HARL."""
 import copy
 import math
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -115,3 +116,7 @@ def get_grad_norm(parameters):
             continue
         sum_grad += parameter.grad.norm() ** 2
     return math.sqrt(sum_grad)
+
+def check(input):
+    output = torch.from_numpy(input) if type(input) == np.ndarray else input
+    return output

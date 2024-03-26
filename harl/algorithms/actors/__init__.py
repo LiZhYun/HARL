@@ -17,6 +17,7 @@ ALGO_REGISTRY = {
     "haddpg": HADDPG,
     "hatd3": HATD3,
     "hasac": HASAC,
+    "igcsac": HASAC,
     "had3qn": HAD3QN,
     "maddpg": MADDPG,
     "matd3": MATD3,

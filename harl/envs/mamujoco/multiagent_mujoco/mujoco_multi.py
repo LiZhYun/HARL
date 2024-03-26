@@ -197,16 +197,13 @@ class MujocoMulti(MultiAgentEnv):
         )
 
     def get_obs(self):
-        """Returns all agent observat3ions in a list"""
-        state = self.env._get_obs()
+        """ Returns all agent observat3ions in a list """
         obs_n = []
         for a in range(self.n_agents):
             agent_id_feats = np.zeros(self.n_agents, dtype=np.float32)
             agent_id_feats[a] = 1.0
-            # obs_n.append(self.get_obs_agent(a))
-            # obs_n.append(np.concatenate([state, self.get_obs_agent(a), agent_id_feats]))
-            # obs_n.append(np.concatenate([self.get_obs_agent(a), agent_id_feats]))
-            obs_i = np.concatenate([state, agent_id_feats])
+            obs = self.get_obs_agent(a)
+            obs_i = np.concatenate([obs, agent_id_feats])
             obs_i = (obs_i - np.mean(obs_i)) / np.std(obs_i)
             obs_n.append(obs_i)
         return obs_n
@@ -215,40 +212,92 @@ class MujocoMulti(MultiAgentEnv):
         if self.agent_obsk is None:
             return self.env._get_obs()
         else:
-            # return build_obs(self.env,
-            #                       self.k_dicts[agent_id],
-            #                       self.k_categories,
-            #                       self.mujoco_globals,
-            #                       self.global_categories,
-            #                       vec_len=getattr(self, "obs_size", None))
             return build_obs(
                 self.env,
                 self.k_dicts[agent_id],
                 self.k_categories,
                 self.mujoco_globals,
                 self.global_categories,
-            )
-
+                vec_len=self.obs_size -
+                self.n_agents if hasattr(self, "obs_size") else None)
+    
     def get_obs_size(self):
-        """Returns the shape of the observation"""
+        """ Returns the shape of the observation """
+        # only called once and in the init function
         if self.agent_obsk is None:
-            return self.get_obs_agent(0).size
+            return self.get_obs_agent(0).size + self.n_agents
         else:
-            return len(self.get_obs()[0])
-            # return max([len(self.get_obs_agent(agent_id)) for agent_id in range(self.n_agents)])
+            return max([len(obs_i) for obs_i in self.get_obs()])
 
     def get_state(self, team=None):
         # TODO: May want global states for different teams (so cannot see what the other team is communicating e.g.)
         state = self.env._get_obs()
-        state_normed = (state - np.mean(state)) / np.std(state)
         share_obs = []
         for a in range(self.n_agents):
-            share_obs.append(state_normed)
+            agent_id_feats = np.zeros(self.n_agents, dtype=np.float32)
+            agent_id_feats[a] = 1.0
+            state_i = np.concatenate([state, agent_id_feats])
+            state_i = (state_i - np.mean(state_i)) / np.std(state_i)
+            share_obs.append(state_i)
         return share_obs
 
     def get_state_size(self):
-        """Returns the shape of the state"""
+        """ Returns the shape of the state"""
         return len(self.get_state()[0])
+    
+    # def get_obs(self):
+    #     """Returns all agent observat3ions in a list"""
+    #     state = self.env._get_obs()
+    #     obs_n = []
+    #     for a in range(self.n_agents):
+    #         agent_id_feats = np.zeros(self.n_agents, dtype=np.float32)
+    #         agent_id_feats[a] = 1.0
+    #         # obs_n.append(self.get_obs_agent(a))
+    #         # obs_n.append(np.concatenate([state, self.get_obs_agent(a), agent_id_feats]))
+    #         # obs_n.append(np.concatenate([self.get_obs_agent(a), agent_id_feats]))
+    #         obs_i = np.concatenate([state, agent_id_feats])
+    #         obs_i = (obs_i - np.mean(obs_i)) / np.std(obs_i)
+    #         obs_n.append(obs_i)
+    #     return obs_n
+
+    # def get_obs_agent(self, agent_id):
+    #     if self.agent_obsk is None:
+    #         return self.env._get_obs()
+    #     else:
+    #         # return build_obs(self.env,
+    #         #                       self.k_dicts[agent_id],
+    #         #                       self.k_categories,
+    #         #                       self.mujoco_globals,
+    #         #                       self.global_categories,
+    #         #                       vec_len=getattr(self, "obs_size", None))
+    #         return build_obs(
+    #             self.env,
+    #             self.k_dicts[agent_id],
+    #             self.k_categories,
+    #             self.mujoco_globals,
+    #             self.global_categories,
+    #         )
+
+    # def get_obs_size(self):
+    #     """Returns the shape of the observation"""
+    #     if self.agent_obsk is None:
+    #         return self.get_obs_agent(0).size
+    #     else:
+    #         return len(self.get_obs()[0])
+    #         # return max([len(self.get_obs_agent(agent_id)) for agent_id in range(self.n_agents)])
+
+    # def get_state(self, team=None):
+    #     # TODO: May want global states for different teams (so cannot see what the other team is communicating e.g.)
+    #     state = self.env._get_obs()
+    #     state_normed = (state - np.mean(state)) / np.std(state)
+    #     share_obs = []
+    #     for a in range(self.n_agents):
+    #         share_obs.append(state_normed)
+    #     return share_obs
+
+    # def get_state_size(self):
+    #     """Returns the shape of the state"""
+    #     return len(self.get_state()[0])
 
     def get_avail_actions(self):  # all actions are always available
         # return np.ones(shape=(self.n_agents, self.n_actions,))

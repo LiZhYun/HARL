@@ -1,6 +1,8 @@
 """Train an algorithm."""
 import argparse
 import json
+import wandb
+import socket
 from harl.utils.configs_tools import get_defaults_yaml_args, update_args
 
 
@@ -20,6 +22,7 @@ def main():
             "haddpg",
             "hatd3",
             "hasac",
+            "igcsac",
             "had3qn",
             "maddpg",
             "matd3",
@@ -52,6 +55,9 @@ def main():
         default="",
         help="If set, load existing experiment config file instead of reading from yaml config file.",
     )
+    parser.add_argument('--use_wandb', action='store_false', default=True,
+                        help="Whether to use weights&biases, if not, use tensorboardX instead")
+    
     args, unparsed_args = parser.parse_known_args()
 
     def process(arg):
@@ -74,6 +80,36 @@ def main():
     else:  # load config from corresponding yaml file
         algo_args, env_args = get_defaults_yaml_args(args["algo"], args["env"])
     update_args(unparsed_dict, algo_args, env_args)  # update args from command line
+
+    if args["use_wandb"]:
+        # init wandb
+        wandb_config = {**algo_args["train"], **algo_args["model"], **algo_args["algo"], **env_args}
+        project = "mujoco" if args["env"]=="mamujoco" else "StarCraft2v2"
+        if project == "StarCraft2v2":
+            groups = ['10gen_zerg', '10gen_protoss', '10gen_terran']
+            if 'zerg' in env_args["map_name"]:
+                group = groups[0]
+            elif 'protoss' in env_args["map_name"]:
+                group = groups[1]
+            else:
+                group = groups[2]
+            wandb_config['units'] = "5v5"
+        else:
+            group = env_args["scenario"]
+
+        
+        wandb_config['algorithm_name'] = args["algo"]
+        run = wandb.init(config=wandb_config,
+                         project=project,
+                         entity="zhiyuanli",
+                         notes=socket.gethostname(),
+                         name=str(args["algo"] +
+                         "_seed" + str(algo_args["seed"]["seed"])),
+                         group=group,
+                        #  dir=str(run_dir),
+                         job_type="training",
+                         reinit=True,
+                         tags=["iclr24"],)
 
     if args["env"] == "dexhands":
         import isaacgym  # isaacgym has to be imported before PyTorch
