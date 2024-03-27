@@ -76,11 +76,12 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
         self.critic.turn_off_grad()
         sp_valid_transition = torch.tensor(sp_valid_transition, device=self.device)
         if self.total_it % self.policy_freq == 0:
+            for agent_id in range(self.num_agents):
+                self.actor[agent_id].turn_on_grad()
             # train actors
             if self.args["algo"] in ["hasac", "igcsac"]:
                 actions = []
                 logp_actions = []
-                # with torch.no_grad():
                 for agent_id in range(self.num_agents):
                     action, logp_action = self.actor[
                         agent_id
@@ -101,8 +102,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
 
                 # actions shape: (n_agents, batch_size, dim)
                 # logp_actions shape: (n_agents, batch_size, 1)
-                for agent_id in range(self.num_agents):
-                    self.actor[agent_id].turn_on_grad()
+                
                 # train agents
                 if self.state_type == "EP":
                     actions_t = actions.reshape(actions.shape[0], -1)

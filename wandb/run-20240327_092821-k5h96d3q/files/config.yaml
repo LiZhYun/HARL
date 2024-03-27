@@ -1,0 +1,140 @@
+wandb_version: 1
+
+n_rollout_threads:
+  desc: null
+  value: 2
+num_env_steps:
+  desc: null
+  value: 20000000
+warmup_steps:
+  desc: null
+  value: 10000
+train_interval:
+  desc: null
+  value: 50
+update_per_train:
+  desc: null
+  value: 1
+log_interval:
+  desc: null
+  value: null
+eval_interval:
+  desc: null
+  value: 10000
+use_valuenorm:
+  desc: null
+  value: true
+use_linear_lr_decay:
+  desc: null
+  value: false
+use_proper_time_limits:
+  desc: null
+  value: true
+model_dir:
+  desc: null
+  value: null
+hidden_sizes:
+  desc: null
+  value:
+  - 256
+  - 256
+activation_func:
+  desc: null
+  value: relu
+use_feature_normalization:
+  desc: null
+  value: true
+final_activation_func:
+  desc: null
+  value: tanh
+initialization_method:
+  desc: null
+  value: orthogonal_
+gain:
+  desc: null
+  value: 0.01
+lr:
+  desc: null
+  value: 0.0005
+critic_lr:
+  desc: null
+  value: 0.0005
+auto_alpha:
+  desc: null
+  value: false
+alpha:
+  desc: null
+  value: 0.001
+alpha_lr:
+  desc: null
+  value: 0.0003
+gamma:
+  desc: null
+  value: 0.99
+buffer_size:
+  desc: null
+  value: 1000000
+batch_size:
+  desc: null
+  value: 1000
+polyak:
+  desc: null
+  value: 0.005
+n_step:
+  desc: null
+  value: 20
+use_huber_loss:
+  desc: null
+  value: true
+use_policy_active_masks:
+  desc: null
+  value: true
+huber_delta:
+  desc: null
+  value: 10.0
+share_param:
+  desc: null
+  value: false
+fixed_order:
+  desc: null
+  value: false
+scenario:
+  desc: null
+  value: Ant-v2
+agent_conf:
+  desc: null
+  value: 4x2
+agent_obsk:
+  desc: null
+  value: 0
+episode_limit:
+  desc: null
+  value: 1000
+algorithm_name:
+  desc: null
+  value: igcsac
+_wandb:
+  desc: null
+  value:
+    python_version: 3.8.18
+    cli_version: 0.16.1
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1711502901.717412
+    t:
+      1:
+      - 55
+      2:
+      - 1
+      - 55
+      3:
+      - 13
+      - 15
+      - 16
+      - 23
+      4: 3.8.18
+      5: 0.16.1
+      8:
+      - 5
+      13: linux-x86_64
+    framework: torch
