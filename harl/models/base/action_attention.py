@@ -16,6 +16,9 @@ from harl.models.base.distributions import DiagGaussian, FixedNormal
 from harl.models.base.plain_cnn import PlainCNN
 from harl.models.base.plain_mlp import PlainMLP
 
+LOG_STD_MAX = 2
+LOG_STD_MIN = -20
+
 def init_(m, gain=0.01, activate=False):
     if activate:
         gain = nn.init.calculate_gain('relu')
@@ -82,8 +85,10 @@ class Action_Attention(nn.Module):
         x = self.layer_norm(x)
 
         bias_ = self.head(x)
-        log_std = bias_ * self.std_x_coef
-        action_std = 1 / (1 + torch.exp(-self.sigmoid_gain * (log_std / self.std_x_coef))) * self.std_y_coef
+        log_std = torch.clamp(bias_, LOG_STD_MIN, LOG_STD_MAX)
+        action_std = torch.exp(log_std)
+        # log_std = bias_ * self.std_x_coef
+        # action_std = 1 / (1 + torch.exp(-self.sigmoid_gain * (log_std / self.std_x_coef))) * self.std_y_coef
 
         if self.discrete:
             # bias_ = bias_ - bias_.logsumexp(dim=-1, keepdim=True)
