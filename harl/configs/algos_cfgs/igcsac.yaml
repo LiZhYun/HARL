@@ -62,15 +62,15 @@ model:
   gain: 0.01
   # optimizer parameters
   # actor learning rate
-  lr: 0.0005
-  attn_lr: 0.00005
+  lr: 0.001
+  attn_lr: 0.001
   # critic learning rate
-  critic_lr: 0.0005
+  critic_lr: 0.0003
 algo:
   # whether to auto-tune temperature
   auto_alpha: False
   # temperature parameter
-  alpha: 0.001
+  alpha: 0.2
   # alpha learning rate
   alpha_lr: 0.0003
   # discount factor
@@ -82,9 +82,9 @@ algo:
   # coefficient for target model soft update
   polyak: 0.005
   # the number of steps to look ahead
-  n_step: 20
+  n_step: 5
   # whether to use huber loss
-  use_huber_loss: True
+  use_huber_loss: false
   # whether to use policy active masks
   use_policy_active_masks: True
   # huber delta

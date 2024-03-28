@@ -296,6 +296,9 @@ class OffPolicyBaseRunner:
                     avg_actor_loss += actor_loss
                 avg_critic_loss /= update_num
                 avg_actor_loss /= update_num
+                print(
+                        f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {step}, critic_loss: {avg_critic_loss}, actor_loss: {avg_actor_loss}.\n"
+                    )
                 if self.use_wandb:
                     wandb.log({"avg_critic_loss": avg_critic_loss}, step=step)
                     wandb.log({"avg_actor_loss": avg_actor_loss}, step=step)
