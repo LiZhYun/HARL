@@ -288,9 +288,18 @@ class OffPolicyBaseRunner:
                         for agent_id in range(self.num_agents):
                             self.actor[agent_id].lr_decay(step, steps)
                     self.critic.lr_decay(step, steps)
+                
+                avg_critic_loss, avg_actor_loss = 0, 0
                 for _ in range(update_num):
-                    self.train()
-            
+                    critic_loss, actor_loss = self.train()
+                    avg_critic_loss += critic_loss
+                    avg_actor_loss += actor_loss
+                avg_critic_loss /= update_num
+                avg_actor_loss /= update_num
+                if self.use_wandb:
+                    wandb.log({"avg_critic_loss": avg_critic_loss}, step=step)
+                    wandb.log({"avg_actor_loss": avg_actor_loss}, step=step)
+
             if step % self.algo_args["train"]["log_interval"] == 0:
                 cur_step = (
                     self.algo_args["train"]["warmup_steps"]

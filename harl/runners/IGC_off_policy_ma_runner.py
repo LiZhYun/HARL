@@ -42,6 +42,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                     sp_next_available_actions[agent_id]
                     if sp_next_available_actions is not None
                     else None,
+                    stochastic=False,
                 )
                 next_actions.append(next_action)
                 next_logp_actions.append(next_logp_action)
@@ -51,7 +52,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
             next_mix_dist = FixedNormal(next_actions, next_action_std)
             next_actions = next_mix_dist.sample()
             next_logp_actions = next_mix_dist.log_probs(next_actions).sum(axis=-1, keepdim=True)
-            self.critic.train(
+            critic_loss = self.critic.train(
                 sp_share_obs,
                 sp_actions,
                 sp_reward,
@@ -240,3 +241,4 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                 for agent_id in range(self.num_agents):
                     self.actor[agent_id].soft_update()
             self.critic.soft_update()
+            return critic_loss, actor_loss
