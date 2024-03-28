@@ -166,7 +166,7 @@ class OffPolicyBaseRunner:
                 raise NotImplementedError
 
         self.action_attention = Action_Attention({**algo_args["train"], **algo_args["model"], **algo_args["algo"]}, self.num_agents, self.envs.action_space[0], self.envs.share_observation_space[0], device = self.device)
-        self.action_attention_optimizer = torch.optim.Adam(self.action_attention.parameters(), lr=algo_args["model"]["lr"])
+        self.action_attention_optimizer = torch.optim.Adam(self.action_attention.parameters(), lr=algo_args["model"]["attn_lr"])
 
         if (
             "use_valuenorm" in self.algo_args["train"].keys()
@@ -300,22 +300,24 @@ class OffPolicyBaseRunner:
                         f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Evaluation at step {cur_step} / {self.algo_args['train']['num_env_steps']}:"
                     )
                     self.eval(cur_step)
-                else:
+                # else:
+                print(
+                    f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {cur_step} / {self.algo_args['train']['num_env_steps']}, average step reward in buffer: {self.buffer.get_mean_rewards()}.\n"
+                )
+                if len(self.done_episodes_rewards) > 0:
+                    aver_episode_rewards = np.mean(self.done_episodes_rewards)
                     print(
-                        f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {cur_step} / {self.algo_args['train']['num_env_steps']}, average step reward in buffer: {self.buffer.get_mean_rewards()}.\n"
+                        "Some episodes done, average episode reward is {}.\n".format(
+                            aver_episode_rewards
+                        )
                     )
-                    if len(self.done_episodes_rewards) > 0:
-                        aver_episode_rewards = np.mean(self.done_episodes_rewards)
-                        print(
-                            "Some episodes done, average episode reward is {}.\n".format(
-                                aver_episode_rewards
-                            )
-                        )
-                        self.log_file.write(
-                            ",".join(map(str, [cur_step, aver_episode_rewards])) + "\n"
-                        )
-                        self.log_file.flush()
-                        self.done_episodes_rewards = []
+                    if self.use_wandb:
+                        wandb.log({"aver_episode_rewards": aver_episode_rewards}, step=step)
+                    # self.log_file.write(
+                    #     ",".join(map(str, [cur_step, aver_episode_rewards])) + "\n"
+                    # )
+                    # self.log_file.flush()
+                    self.done_episodes_rewards = []
                 self.save()
 
     def warmup(self):

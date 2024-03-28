@@ -45,7 +45,7 @@ class Action_Attention(nn.Module):
         self.discrete = False
         self.sigmoid_gain = 0.3
         self.std_x_coef = 1
-        self.std_y_coef = 5e-1
+        self.std_y_coef = 0.75
         if action_space.__class__.__name__ == "Discrete":
             self.discrete = True # 1 0.95
             self.action_dim = action_space.n
@@ -85,10 +85,10 @@ class Action_Attention(nn.Module):
         x = self.layer_norm(x)
 
         bias_ = self.head(x)
-        log_std = torch.clamp(bias_, LOG_STD_MIN, LOG_STD_MAX)
-        action_std = torch.exp(log_std)
-        # log_std = bias_ * self.std_x_coef
-        # action_std = 1 / (1 + torch.exp(-self.sigmoid_gain * (log_std / self.std_x_coef))) * self.std_y_coef
+        # log_std = torch.clamp(bias_, LOG_STD_MIN, LOG_STD_MAX)
+        # action_std = torch.exp(log_std)
+        log_std = bias_ * self.std_x_coef
+        action_std = 1 / (1 + torch.exp(-self.sigmoid_gain * (log_std / self.std_x_coef))) * self.std_y_coef
 
         if self.discrete:
             # bias_ = bias_ - bias_.logsumexp(dim=-1, keepdim=True)

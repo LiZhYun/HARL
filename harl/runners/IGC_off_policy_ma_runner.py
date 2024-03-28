@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from harl.runners.IGC_off_policy_base_runner import OffPolicyBaseRunner
 from harl.models.base.distributions import FixedNormal
 from harl.utils.models_tools import check
+from harl.utils.trans_tools import _t2n
 
 
 class OffPolicyMARunner(OffPolicyBaseRunner):
@@ -44,6 +45,12 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                 )
                 next_actions.append(next_action)
                 next_logp_actions.append(next_logp_action)
+            next_actions = torch.stack(next_actions, dim=1)
+            bias_, next_action_std = self.action_attention(next_actions, torch.unsqueeze(check(sp_next_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
+            # ind_dist = FixedNormal(logits, stds)
+            next_mix_dist = FixedNormal(next_actions, next_action_std)
+            next_logp_actions = next_mix_dist.log_probs(next_actions).sum(axis=-1, keepdim=True)
+            next_actions = _t2n(next_mix_dist.sample())
             self.critic.train(
                 sp_share_obs,
                 sp_actions,
