@@ -49,8 +49,8 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
             bias_, next_action_std = self.action_attention(next_actions, torch.unsqueeze(check(sp_next_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
             # ind_dist = FixedNormal(logits, stds)
             next_mix_dist = FixedNormal(next_actions, next_action_std)
+            next_actions = next_mix_dist.sample()
             next_logp_actions = next_mix_dist.log_probs(next_actions).sum(axis=-1, keepdim=True)
-            next_actions = _t2n(next_mix_dist.sample())
             self.critic.train(
                 sp_share_obs,
                 sp_actions,
@@ -105,7 +105,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                 # ind_dist = FixedNormal(logits, stds)
                 mix_dist = FixedNormal(actions, action_std)
                 actions = mix_dist.sample()
-                logp_actions = mix_dist.log_probs(actions).sum(axis=-1, keepdim=True)
+                logp_actions = mix_dist.log_probs(actions).reshape(actions.shape[0], -1).sum(axis=-1, keepdim=True)
 
                 # actions shape: (n_agents, batch_size, dim)
                 # logp_actions shape: (n_agents, batch_size, 1)
@@ -122,8 +122,8 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                     if self.state_type == "EP":
                         actor_loss = (
                             -torch.sum(
-                                (value_pred.unsqueeze(1).repeat(1, self.num_agents, 1) - self.alpha * logp_actions)
-                                * sp_valid_transition.permute(1,0,2)
+                                (value_pred - self.alpha * logp_actions).unsqueeze(0).repeat(self.num_agents, 1, 1)
+                                * sp_valid_transition
                             )
                             / sp_valid_transition.sum()
                         )

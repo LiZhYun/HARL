@@ -290,20 +290,13 @@ class OffPolicyBaseRunner:
                     self.critic.lr_decay(step, steps)
                 for _ in range(update_num):
                     self.train()
-            if step % self.algo_args["train"]["eval_interval"] == 0:
-                cur_step = (
-                    self.algo_args["train"]["warmup_steps"]
-                    + step * self.algo_args["train"]["n_rollout_threads"]
-                )
-                if self.algo_args["eval"]["use_eval"]:
-                    print(
-                        f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Evaluation at step {cur_step} / {self.algo_args['train']['num_env_steps']}:"
-                    )
-                    self.eval(cur_step)
-                # else:
+            
+            if step % self.algo_args["train"]["log_interval"] == 0:
                 print(
-                    f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {cur_step} / {self.algo_args['train']['num_env_steps']}, average step reward in buffer: {self.buffer.get_mean_rewards()}.\n"
-                )
+                        f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {cur_step} / {self.algo_args['train']['num_env_steps']}, average step reward in buffer: {self.buffer.get_mean_rewards()}.\n"
+                    )
+                if self.use_wandb:
+                    wandb.log({"aver_step_rewards": self.buffer.get_mean_rewards()}, step=step)
                 if len(self.done_episodes_rewards) > 0:
                     aver_episode_rewards = np.mean(self.done_episodes_rewards)
                     print(
@@ -318,6 +311,19 @@ class OffPolicyBaseRunner:
                     # )
                     # self.log_file.flush()
                     self.done_episodes_rewards = []
+
+            if step % self.algo_args["train"]["eval_interval"] == 0:
+                cur_step = (
+                    self.algo_args["train"]["warmup_steps"]
+                    + step * self.algo_args["train"]["n_rollout_threads"]
+                )
+                if self.algo_args["eval"]["use_eval"]:
+                    print(
+                        f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Evaluation at step {cur_step} / {self.algo_args['train']['num_env_steps']}:"
+                    )
+                    self.eval(cur_step)
+                # else:
+                
                 self.save()
 
     def warmup(self):

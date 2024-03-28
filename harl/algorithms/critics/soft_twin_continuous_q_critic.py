@@ -41,6 +41,7 @@ class SoftTwinContinuousQCritic(TwinContinuousQCritic):
         self.use_policy_active_masks = args["use_policy_active_masks"]
         self.use_huber_loss = args["use_huber_loss"]
         self.huber_delta = args["huber_delta"]
+        self.args = args
 
     def update_alpha(self, logp_actions, target_entropy):
         """Auto-tune the temperature parameter alpha."""
@@ -136,12 +137,12 @@ class SoftTwinContinuousQCritic(TwinContinuousQCritic):
         gamma = check(gamma).to(**self.tpdv)
         next_share_obs = check(next_share_obs).to(**self.tpdv)
         if self.action_type == "Box":
-            next_actions = torch.cat(next_actions, dim=-1).to(**self.tpdv)
+            next_actions = torch.cat(next_actions, dim=-1).to(**self.tpdv) if isinstance(next_actions, list) else next_actions.to(**self.tpdv).reshape(next_actions.shape[0], -1)
         else:
-            next_actions = torch.cat(next_actions, dim=-1).to(**self.tpdv_a)
+            next_actions = torch.cat(next_actions, dim=-1).to(**self.tpdv_a) if isinstance(next_actions, list) else next_actions.to(**self.tpdv).reshape(next_actions.shape[0], -1)
         next_logp_actions = torch.sum(
             torch.cat(next_logp_actions, dim=-1), dim=-1, keepdim=True
-        ).to(**self.tpdv)
+        ).to(**self.tpdv) if isinstance(next_logp_actions, list) else next_logp_actions.to(**self.tpdv).reshape(next_logp_actions.shape[0], -1).sum(axis=-1, keepdim=True)
         if self.state_type == "FP":
             next_actions = torch.tile(next_actions, (self.num_agents, 1))
             next_logp_actions = torch.tile(next_logp_actions, (self.num_agents, 1))

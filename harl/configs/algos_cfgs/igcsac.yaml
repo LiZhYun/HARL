@@ -23,7 +23,7 @@ train:
   # ratio of training iterations to train_interval
   update_per_train: 1
   # logging interval (currently unused)
-  log_interval: ~
+  log_interval: 1000
   # evaluation interval
   eval_interval: 10000
   # whether to use ValueNorm
