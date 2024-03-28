@@ -292,6 +292,10 @@ class OffPolicyBaseRunner:
                     self.train()
             
             if step % self.algo_args["train"]["log_interval"] == 0:
+                cur_step = (
+                    self.algo_args["train"]["warmup_steps"]
+                    + step * self.algo_args["train"]["n_rollout_threads"]
+                )
                 print(
                         f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {cur_step} / {self.algo_args['train']['num_env_steps']}, average step reward in buffer: {self.buffer.get_mean_rewards()}.\n"
                     )
