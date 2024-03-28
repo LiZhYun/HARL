@@ -101,6 +101,9 @@ class OffPolicyBaseRunner:
         )
 
         self.action_spaces = self.envs.action_space
+        self.act_limit = self.action_spaces[0].high[
+            0
+        ]  # action limit for clamping (assumes all dimensions share the same bound)
         for agent_id in range(self.num_agents):
             self.action_spaces[agent_id].seed(algo_args["seed"]["seed"] + agent_id + 1)
 
@@ -244,7 +247,9 @@ class OffPolicyBaseRunner:
             bias_, action_std = self.action_attention(actions, share_obs)
             # ind_dist = FixedNormal(logits, stds)
             mix_dist = FixedNormal(check(actions).to(self.device), action_std)
-            actions = _t2n(mix_dist.sample())
+            actions = mix_dist.rsample()
+            actions = torch.tanh(actions)
+            actions = _t2n(self.act_limit * actions)
 
             (
                 new_obs,

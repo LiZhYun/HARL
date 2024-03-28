@@ -68,6 +68,7 @@ class Action_Attention(nn.Module):
         self.head = init_(nn.Linear(hidden_sizes[-1], self.action_dim))
 
         self.to(device)
+        self.turn_off_grad()
 
     def forward(self, x, state):
         x = check(x).to(**self.tpdv)
@@ -98,6 +99,16 @@ class Action_Attention(nn.Module):
         #     action_std = torch.sigmoid(self.log_std / self.std_x_coef) * self.std_y_coef
 
         return bias_, action_std
+    
+    def turn_on_grad(self):
+        """Turn on grad for actor parameters."""
+        for p in self.parameters():
+            p.requires_grad = True
+
+    def turn_off_grad(self):
+        """Turn off grad for actor parameters."""
+        for p in self.parameters():
+            p.requires_grad = False
     
 
 class MixerBlock(nn.Module):

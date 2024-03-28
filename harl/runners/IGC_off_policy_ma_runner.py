@@ -50,8 +50,15 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
             bias_, next_action_std = self.action_attention(next_actions, torch.unsqueeze(check(sp_next_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
             # ind_dist = FixedNormal(logits, stds)
             next_mix_dist = FixedNormal(next_actions, next_action_std)
-            next_actions = next_mix_dist.sample()
+            next_actions = next_mix_dist.rsample()
+            
             next_logp_actions = next_mix_dist.log_probs(next_actions).sum(axis=-1, keepdim=True)
+            next_logp_actions -= (2 * (np.log(2) - next_actions - F.softplus(-2 * next_actions))).sum(
+                axis=-1, keepdim=True
+            )
+
+            next_actions = torch.tanh(next_actions)
+            next_actions = self.act_limit * next_actions
             critic_loss = self.critic.train(
                 sp_share_obs,
                 sp_actions,
@@ -86,6 +93,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
         if self.total_it % self.policy_freq == 0:
             for agent_id in range(self.num_agents):
                 self.actor[agent_id].turn_on_grad()
+            self.action_attention.turn_on_grad()
             # train actors
             if self.args["algo"] in ["hasac", "igcsac"]:
                 actions = []
@@ -105,9 +113,15 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                 bias_, action_std = self.action_attention(actions, torch.unsqueeze(check(sp_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
                 # ind_dist = FixedNormal(logits, stds)
                 mix_dist = FixedNormal(actions, action_std)
-                actions = mix_dist.sample()
-                logp_actions = mix_dist.log_probs(actions).reshape(actions.shape[0], -1).sum(axis=-1, keepdim=True)
-
+                actions = mix_dist.rsample()
+                logp_actions = mix_dist.log_probs(actions).sum(axis=-1, keepdim=True)
+                logp_actions -= (2 * (np.log(2) - actions - F.softplus(-2 * actions))).sum(
+                    axis=-1, keepdim=True
+                )
+                logp_actions = logp_actions.reshape(actions.shape[0], -1).sum(axis=-1, keepdim=True)
+                
+                actions = torch.tanh(actions)
+                actions = self.act_limit * actions
                 # actions shape: (n_agents, batch_size, dim)
                 # logp_actions shape: (n_agents, batch_size, 1)
                 
@@ -150,6 +164,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                     self.actor[agent_id].actor_optimizer.step()
                     self.actor[agent_id].turn_off_grad()
                 self.action_attention_optimizer.step()
+                self.action_attention.turn_off_grad()
                 # train this agent's alpha
                 if self.algo_args["algo"]["auto_alpha"]:
                     log_prob = (
