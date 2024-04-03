@@ -106,6 +106,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                         sp_available_actions[agent_id]
                         if sp_available_actions is not None
                         else None,
+                        stochastic=False,
                     )
                     actions.append(action)
                     logp_actions.append(logp_action)

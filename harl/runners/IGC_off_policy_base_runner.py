@@ -285,6 +285,10 @@ class OffPolicyBaseRunner:
             obs = new_obs
             share_obs = new_share_obs
             available_actions = new_available_actions
+            cur_step = (
+                self.algo_args["train"]["warmup_steps"]
+                + step * self.algo_args["train"]["n_rollout_threads"]
+            )
             if step % self.algo_args["train"]["train_interval"] == 0:
                 if self.algo_args["train"]["use_linear_lr_decay"]:
                     if self.share_param:
@@ -305,19 +309,19 @@ class OffPolicyBaseRunner:
                         f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {step}, critic_loss: {avg_critic_loss}, actor_loss: {avg_actor_loss}.\n"
                     )
                 if self.use_wandb:
-                    wandb.log({"avg_critic_loss": avg_critic_loss}, step=step)
-                    wandb.log({"avg_actor_loss": avg_actor_loss}, step=step)
+                    wandb.log({"avg_critic_loss": avg_critic_loss}, step=cur_step)
+                    wandb.log({"avg_actor_loss": avg_actor_loss}, step=cur_step)
 
             if step % self.algo_args["train"]["log_interval"] == 0:
-                cur_step = (
-                    self.algo_args["train"]["warmup_steps"]
-                    + step * self.algo_args["train"]["n_rollout_threads"]
-                )
+                # cur_step = (
+                #     self.algo_args["train"]["warmup_steps"]
+                #     + step * self.algo_args["train"]["n_rollout_threads"]
+                # )
                 print(
                         f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {cur_step} / {self.algo_args['train']['num_env_steps']}, average step reward in buffer: {self.buffer.get_mean_rewards()}.\n"
                     )
                 if self.use_wandb:
-                    wandb.log({"aver_step_rewards": self.buffer.get_mean_rewards()}, step=step)
+                    wandb.log({"aver_step_rewards": self.buffer.get_mean_rewards()}, step=cur_step)
                 if len(self.done_episodes_rewards) > 0:
                     aver_episode_rewards = np.mean(self.done_episodes_rewards)
                     print(
@@ -326,7 +330,7 @@ class OffPolicyBaseRunner:
                         )
                     )
                     if self.use_wandb:
-                        wandb.log({"aver_episode_rewards": aver_episode_rewards}, step=step)
+                        wandb.log({"aver_episode_rewards": aver_episode_rewards}, step=cur_step)
                     # self.log_file.write(
                     #     ",".join(map(str, [cur_step, aver_episode_rewards])) + "\n"
                     # )
@@ -334,10 +338,10 @@ class OffPolicyBaseRunner:
                     self.done_episodes_rewards = []
 
             if step % self.algo_args["train"]["eval_interval"] == 0:
-                cur_step = (
-                    self.algo_args["train"]["warmup_steps"]
-                    + step * self.algo_args["train"]["n_rollout_threads"]
-                )
+                # cur_step = (
+                #     self.algo_args["train"]["warmup_steps"]
+                #     + step * self.algo_args["train"]["n_rollout_threads"]
+                # )
                 if self.algo_args["eval"]["use_eval"]:
                     print(
                         f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Evaluation at step {cur_step} / {self.algo_args['train']['num_env_steps']}:"

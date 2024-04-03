@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
 #SBATCH --mem=10G
-#SBATCH --time=48:00:00
+#SBATCH --time=72:00:00
 #SBATCH --array=0-4
 
 echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/zhaow7/.mujoco/mujoco210/bin" >> ~/.bashrc
