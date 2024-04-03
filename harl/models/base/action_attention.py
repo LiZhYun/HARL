@@ -52,8 +52,12 @@ class Action_Attention(nn.Module):
         elif action_space.__class__.__name__ == "Box":
             self.action_dim = action_space.shape[0] # 1 0.75
 
+        self.logit_net = PlainMLP(
+            [self.action_dim] + list(hidden_sizes), activation_func, final_activation_func
+        )
+
         self.net = PlainMLP(
-            [feature_dim + self.action_dim] + list(hidden_sizes), activation_func, final_activation_func
+            [feature_dim + hidden_sizes[-1]] + list(hidden_sizes), activation_func, final_activation_func
         )
 
         self.layers = nn.ModuleList()
@@ -79,7 +83,7 @@ class Action_Attention(nn.Module):
         else:
             obs = state
 
-        x = self.net(torch.cat([obs, x], -1))
+        x = self.net(torch.cat([obs, self.logit_net(x)], -1))
 
         for layer in range(2):
             x = self.layers[layer](x)

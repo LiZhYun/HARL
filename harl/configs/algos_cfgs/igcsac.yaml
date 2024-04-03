@@ -62,15 +62,15 @@ model:
   gain: 0.01
   # optimizer parameters
   # actor learning rate
-  lr: 0.001
-  attn_lr: 0.001
+  lr: 0.0005
+  attn_lr: 0.00005
   # critic learning rate
-  critic_lr: 0.0003
+  critic_lr: 0.0005
 algo:
   # whether to auto-tune temperature
   auto_alpha: False
   # temperature parameter
-  alpha: 0.2
+  alpha: 0.001
   # alpha learning rate
   alpha_lr: 0.0003
   # discount factor
