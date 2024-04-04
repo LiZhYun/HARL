@@ -136,12 +136,15 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                 value_pred = self.critic.get_values(sp_share_obs, actions_t)
                 if self.algo_args["algo"]["use_policy_active_masks"]:
                     if self.state_type == "EP":
-                        actor_loss = (
-                            -torch.sum(
-                                (value_pred - self.alpha * logp_actions).unsqueeze(0).repeat(self.num_agents, 1, 1)
-                                * sp_valid_transition
-                            )
-                            / sp_valid_transition.sum()
+                        # actor_loss = (
+                        #     -torch.sum(
+                        #         (value_pred - self.alpha * logp_actions).unsqueeze(0).repeat(self.num_agents, 1, 1)
+                        #         * sp_valid_transition
+                        #     )
+                        #     / sp_valid_transition.sum()
+                        # )
+                        actor_loss = -torch.mean(
+                            value_pred - self.alpha * logp_actions
                         )
                     elif self.state_type == "FP":
                         valid_transition = sp_valid_transition
