@@ -57,7 +57,7 @@ class Action_Attention(nn.Module):
         )
 
         self.net = PlainMLP(
-            [feature_dim + hidden_sizes[-1]] + list(hidden_sizes), activation_func, final_activation_func
+            [feature_dim + hidden_sizes[-1] + self.num_agents] + list(hidden_sizes), activation_func, final_activation_func
         )
 
         self.layers = nn.ModuleList()
@@ -83,17 +83,18 @@ class Action_Attention(nn.Module):
         else:
             obs = state
 
-        x = self.net(torch.cat([obs, self.logit_net(x)], -1))
+        id_feat = torch.eye(self.num_agents).unsqueeze(0).repeat(obs.shape[0], 1, 1).to(**self.tpdv)
+        x = self.net(torch.cat([obs, self.logit_net(x), id_feat], -1))
 
         for layer in range(2):
             x = self.layers[layer](x)
         x = self.layer_norm(x)
 
         bias_ = self.head(x)
-        log_std = torch.clamp(bias_, LOG_STD_MIN, LOG_STD_MAX)
-        action_std = torch.exp(log_std)
-        # log_std = bias_ * self.std_x_coef
-        # action_std = 1 / (1 + torch.exp(-self.sigmoid_gain * (log_std / self.std_x_coef))) * self.std_y_coef
+        # log_std = torch.clamp(bias_, LOG_STD_MIN, LOG_STD_MAX)
+        # action_std = torch.exp(log_std)
+        log_std = bias_ * self.std_x_coef
+        action_std = 1 / (1 + torch.exp(-self.sigmoid_gain * (log_std / self.std_x_coef))) * self.std_y_coef
 
         if self.discrete:
             # bias_ = bias_ - bias_.logsumexp(dim=-1, keepdim=True)
