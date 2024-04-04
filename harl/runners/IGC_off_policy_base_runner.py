@@ -241,7 +241,7 @@ class OffPolicyBaseRunner:
         )
         for step in range(1, steps + 1):
             actions = self.get_actions(
-                obs, available_actions=available_actions, add_random=False
+                obs, available_actions=available_actions, add_random=True
             )
 
             bias_, action_std = self.action_attention(actions, share_obs)
