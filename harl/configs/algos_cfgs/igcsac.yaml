@@ -62,10 +62,10 @@ model:
   gain: 0.01
   # optimizer parameters
   # actor learning rate
-  lr: 0.0003
-  attn_lr: 0.00003
+  lr: 0.0005
+  attn_lr: 0.00005
   # critic learning rate
-  critic_lr: 0.0003
+  critic_lr: 0.0005
 algo:
   # whether to auto-tune temperature
   auto_alpha: False
@@ -78,7 +78,7 @@ algo:
   # off-policy buffer size
   buffer_size: 1000000
   # training batch size
-  batch_size: 1000
+  batch_size: 2200
   # coefficient for target model soft update
   polyak: 0.005
   # the number of steps to look ahead
@@ -93,6 +93,9 @@ algo:
   share_param: False
   # whether to use a fixed optimisation order
   fixed_order: False
+  attention_freq: 1
+  add_random: True
+  decay_id: 0
 logger:
   # logging directory
   log_dir: "./results"

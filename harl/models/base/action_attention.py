@@ -61,7 +61,7 @@ class Action_Attention(nn.Module):
         )
 
         self.layers = nn.ModuleList()
-        for layer in range(2):
+        for layer in range(1):
             self.layers.append(MixerBlock(args, self.num_agents,
                         hidden_sizes[-1], 
                         token_factor=0.5,
@@ -69,7 +69,7 @@ class Action_Attention(nn.Module):
                 
         self.layer_norm = nn.LayerNorm(hidden_sizes[-1])
 
-        self.head = init_(nn.Linear(hidden_sizes[-1], self.action_dim))
+        self.head = nn.Linear(hidden_sizes[-1], self.action_dim)
 
         self.to(device)
         self.turn_off_grad()
@@ -86,7 +86,7 @@ class Action_Attention(nn.Module):
         id_feat = torch.eye(self.num_agents).unsqueeze(0).repeat(obs.shape[0], 1, 1).to(**self.tpdv)
         x = self.net(torch.cat([obs, self.logit_net(x), id_feat], -1))
 
-        for layer in range(2):
+        for layer in range(1):
             x = self.layers[layer](x)
         x = self.layer_norm(x)
 

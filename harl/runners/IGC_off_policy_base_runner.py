@@ -1,6 +1,7 @@
 """Base runner for off-policy algorithms."""
 import os
 import time
+import math
 import torch
 import numpy as np
 import wandb
@@ -48,6 +49,8 @@ class OffPolicyBaseRunner:
         self.state_type = env_args.get("state_type", "EP")
         self.share_param = algo_args["algo"]["share_param"]
         self.fixed_order = algo_args["algo"]["fixed_order"]
+
+        self.decay_id = algo_args["algo"]["decay_id"]
 
         set_seed(algo_args["seed"])
         self.device = init_device(algo_args["device"])
@@ -240,13 +243,18 @@ class OffPolicyBaseRunner:
             * self.algo_args["train"]["train_interval"]
         )
         for step in range(1, steps + 1):
-            actions = self.get_actions(
-                obs, available_actions=available_actions, add_random=True
+            if self.decay_id == 0:
+                self.threshold = 0. + (1. - 0) * \
+                        (1 + math.cos(math.pi * (step*1.5) / (steps-1))) / 2 if step*1.5 <= steps else 0
+            else:
+                self.threshold = max(1. - (1. * ((step*1.5) / float(steps))), 0)
+            actions, means, stddevs = self.get_actions(
+                obs, available_actions=available_actions, add_random=self.algo_args["algo"]["add_random"]
             )
 
             bias_, action_std = self.action_attention(actions, share_obs)
             # ind_dist = FixedNormal(logits, stds)
-            mix_dist = FixedNormal(check(actions).to(self.device), action_std)
+            mix_dist = FixedNormal(check(means).to(self.device), self.threshold*action_std + (1-self.threshold)*stddevs)
             actions = mix_dist.rsample()
             actions = torch.tanh(actions)
             actions = _t2n(self.act_limit * actions)
@@ -298,19 +306,35 @@ class OffPolicyBaseRunner:
                             self.actor[agent_id].lr_decay(step, steps)
                     self.critic.lr_decay(step, steps)
                 
-                avg_critic_loss, avg_actor_loss = 0, 0
+                avg_critic_loss, avg_actor_loss, avg_std, avg_value_pred, avg_entropy, avg_actor_grad_norm, avg_attention_grad_norm = 0, 0, 0, 0, 0, 0, 0
                 for _ in range(update_num):
-                    critic_loss, actor_loss = self.train()
+                    critic_loss, actor_loss, std, value_pred, entropy, actor_grad_norm, attention_grad_norm = self.train()
                     avg_critic_loss += critic_loss
                     avg_actor_loss += actor_loss
+                    avg_std += std
+                    avg_value_pred += value_pred
+                    avg_entropy += entropy
+                    avg_actor_grad_norm += actor_grad_norm
+                    avg_attention_grad_norm += attention_grad_norm
                 avg_critic_loss /= update_num
                 avg_actor_loss /= update_num
+                avg_std /= update_num
+                avg_value_pred /= update_num
+                avg_entropy /= update_num
+                avg_actor_grad_norm /= update_num
+                avg_attention_grad_norm /= update_num
                 print(
                         f"Env {self.args['env']} Task {self.task_name} Algo {self.args['algo']} Exp {self.args['exp_name']} Step {step}, critic_loss: {avg_critic_loss}, actor_loss: {avg_actor_loss}.\n"
                     )
                 if self.use_wandb:
                     wandb.log({"avg_critic_loss": avg_critic_loss}, step=cur_step)
                     wandb.log({"avg_actor_loss": avg_actor_loss}, step=cur_step)
+                    wandb.log({"avg_std": avg_std}, step=cur_step)
+                    wandb.log({"avg_value_pred": avg_value_pred}, step=cur_step)
+                    wandb.log({"avg_entropy": avg_entropy}, step=cur_step)
+                    wandb.log({"avg_actor_grad_norm": avg_actor_grad_norm}, step=cur_step)
+                    wandb.log({"avg_attention_grad_norm": avg_attention_grad_norm}, step=cur_step)
+                    wandb.log({"threshold": self.threshold}, step=cur_step)
 
             if step % self.algo_args["train"]["log_interval"] == 0:
                 # cur_step = (
@@ -550,11 +574,16 @@ class OffPolicyBaseRunner:
                     )
         else:
             actions = []
+            means = []
+            stddevs = []
             for agent_id in range(self.num_agents):
                 actions.append(
                     _t2n(self.actor[agent_id].get_actions(obs[:, agent_id], add_random))
                 )
-        return np.array(actions).transpose(1, 0, 2)
+                mean, stddev = map(_t2n, self.actor[agent_id].get_dist(obs[:, agent_id], add_random))
+                means.append(mean)
+                stddevs.append(stddev)
+        return np.array(actions).transpose(1, 0, 2), np.array(means).transpose(1, 0, 2), np.array(stddevs).transpose(1, 0, 2)
 
     def train(self):
         """Train the model"""

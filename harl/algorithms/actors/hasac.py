@@ -40,6 +40,22 @@ class HASAC(OffPolicyBase):
             actions = self.actor(obs, available_actions, stochastic)
         return actions
 
+    def get_dist(self, obs, available_actions=None, stochastic=True):
+        """Get actions for observations.
+        Args:
+            obs: (np.ndarray) observations of actor, shape is (n_threads, dim) or (batch_size, dim)
+            available_actions: (np.ndarray) denotes which actions are available to agent
+                                 (if None, all actions available)
+            stochastic: (bool) stochastic actions or deterministic actions
+        Returns:
+            actions: (torch.Tensor) actions taken by this actor, shape is (n_threads, dim) or (batch_size, dim)
+        """
+        obs = check(obs).to(**self.tpdv)
+
+        dist = self.actor.get_dist(obs, stochastic=stochastic, with_logprob=False)
+
+        return dist.mean, dist.stddev
+
     def get_actions_with_logprobs(self, obs, available_actions=None, stochastic=True):
         """Get actions and logprobs of actions for observations.
         Args:

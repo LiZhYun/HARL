@@ -1,5 +1,6 @@
 """Runner for off-policy HARL algorithms."""
 import torch
+import math
 import numpy as np
 import torch.nn.functional as F
 from harl.runners.IGC_off_policy_base_runner import OffPolicyBaseRunner
@@ -7,6 +8,13 @@ from harl.models.base.distributions import FixedNormal
 from harl.utils.models_tools import check
 from harl.utils.trans_tools import _t2n
 
+def get_gard_norm(it):
+    sum_grad = 0
+    for x in it:
+        if x.grad is None:
+            continue
+        sum_grad += x.grad.norm() ** 2
+    return math.sqrt(sum_grad)
 
 class OffPolicyMARunner(OffPolicyBaseRunner):
     """Runner for off-policy HA algorithms."""
@@ -42,15 +50,15 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                     sp_next_available_actions[agent_id]
                     if sp_next_available_actions is not None
                     else None,
-                    stochastic=True,
+                    stochastic=self.algo_args["algo"]["add_random"],
                 )
                 next_actions.append(next_action)
                 next_logp_actions.append(next_logp_action)
             next_actions = torch.stack(next_actions, dim=1)
             bias_, next_action_std = self.action_attention(next_actions, torch.unsqueeze(check(sp_next_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
             # ind_dist = FixedNormal(logits, stds)
-            next_mix_dist = FixedNormal(next_actions, next_action_std)
-            next_actions = next_mix_dist.rsample()
+            next_mix_dist = FixedNormal(next_actions, self.threshold*next_action_std)
+            next_actions = next_mix_dist.sample()
             
             next_logp_actions = next_mix_dist.log_probs(next_actions).sum(axis=-1, keepdim=True)
             next_logp_actions -= (2 * (np.log(2) - next_actions - F.softplus(-2 * next_actions))).sum(
@@ -106,14 +114,14 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                         sp_available_actions[agent_id]
                         if sp_available_actions is not None
                         else None,
-                        stochastic=True,
+                        stochastic=self.algo_args["algo"]["add_random"],
                     )
                     actions.append(action)
                     logp_actions.append(logp_action)
                 actions = torch.stack(actions, dim=1)
                 bias_, action_std = self.action_attention(actions, torch.unsqueeze(check(sp_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
                 # ind_dist = FixedNormal(logits, stds)
-                mix_dist = FixedNormal(actions, action_std)
+                mix_dist = FixedNormal(actions, self.threshold*action_std)
                 actions = mix_dist.rsample()
                 logp_actions = mix_dist.log_probs(actions).sum(axis=-1, keepdim=True)
                 logp_actions -= (2 * (np.log(2) - actions - F.softplus(-2 * actions))).sum(
@@ -164,10 +172,17 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                     self.actor[agent_id].actor_optimizer.zero_grad()
                 self.action_attention_optimizer.zero_grad()
                 actor_loss.backward()
+
+                attention_grad_norm = get_gard_norm(self.action_attention.parameters()) 
+
+                actor_grad_norm = 0
                 for agent_id in range(self.num_agents):
+                    actor_grad_norm += get_gard_norm(self.actor[agent_id].actor.parameters())
                     self.actor[agent_id].actor_optimizer.step()
                     self.actor[agent_id].turn_off_grad()
-                self.action_attention_optimizer.step()
+                actor_grad_norm /= self.num_agents
+                if self.total_it % self.algo_args["algo"]["attention_freq"] == 0:
+                    self.action_attention_optimizer.step()
                 self.action_attention.turn_off_grad()
                 # train this agent's alpha
                 if self.algo_args["algo"]["auto_alpha"]:
@@ -260,4 +275,4 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                 for agent_id in range(self.num_agents):
                     self.actor[agent_id].soft_update()
             self.critic.soft_update()
-            return critic_loss, actor_loss
+            return critic_loss, actor_loss, torch.mean(action_std), torch.mean(value_pred), -torch.mean(self.alpha * logp_actions), actor_grad_norm, attention_grad_norm

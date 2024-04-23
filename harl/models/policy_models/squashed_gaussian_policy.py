@@ -83,3 +83,20 @@ class SquashedGaussianPolicy(nn.Module):
         pi_action = self.act_limit * pi_action
 
         return pi_action, logp_pi
+
+    def get_dist(self, obs, stochastic=True, with_logprob=True):
+        # Return output from network scaled to action space limits.
+        if self.feature_extractor is not None:
+            x = self.feature_extractor(obs)
+        else:
+            x = obs
+        net_out = self.net(x)
+        mu = self.mu_layer(net_out)
+        log_std = self.log_std_layer(net_out)
+        log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
+        std = torch.exp(log_std)
+
+        # Pre-squash distribution and sample
+        pi_distribution = Normal(mu, std)
+
+        return pi_distribution
