@@ -252,9 +252,9 @@ class OffPolicyBaseRunner:
                 obs, available_actions=available_actions, add_random=self.algo_args["algo"]["add_random"]
             )
 
-            bias_, action_std = self.action_attention(actions, share_obs)
+            bias_, action_std = self.action_attention(means, share_obs)
             # ind_dist = FixedNormal(logits, stds)
-            mix_dist = FixedNormal(check(means).to(self.device), self.threshold*action_std + (1-self.threshold)*stddevs)
+            mix_dist = FixedNormal(check(means).to(self.device), self.threshold*action_std + (1-self.threshold)*check(stddevs).to(self.device))
             actions = mix_dist.rsample()
             actions = torch.tanh(actions)
             actions = _t2n(self.act_limit * actions)

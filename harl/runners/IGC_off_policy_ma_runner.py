@@ -41,6 +41,8 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
         self.critic.turn_on_grad()
         if self.args["algo"] in ["hasac", "igcsac"]:
             next_actions = []
+            next_means = []
+            next_stddevs = []
             next_logp_actions = []
             for agent_id in range(self.num_agents):
                 next_action, next_logp_action = self.actor[
@@ -52,12 +54,24 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                     else None,
                     stochastic=self.algo_args["algo"]["add_random"],
                 )
+                next_mean, next_stddev = self.actor[
+                    agent_id
+                ].get_dist(
+                    sp_next_obs[agent_id],
+                    sp_next_available_actions[agent_id]
+                    if sp_next_available_actions is not None
+                    else None,
+                    stochastic=self.algo_args["algo"]["add_random"],
+                )
                 next_actions.append(next_action)
+                next_means.append(next_mean)
+                next_stddevs.append(next_stddev)
                 next_logp_actions.append(next_logp_action)
-            next_actions = torch.stack(next_actions, dim=1)
-            bias_, next_action_std = self.action_attention(next_actions, torch.unsqueeze(check(sp_next_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
+            next_means = torch.stack(next_means, dim=1)
+            next_stddevs = torch.stack(next_stddevs, dim=1)
+            bias_, next_action_std = self.action_attention(next_means, torch.unsqueeze(check(sp_next_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
             # ind_dist = FixedNormal(logits, stds)
-            next_mix_dist = FixedNormal(next_actions, self.threshold*next_action_std)
+            next_mix_dist = FixedNormal(next_means, self.threshold*next_action_std + (1-self.threshold)*next_stddevs)
             next_actions = next_mix_dist.sample()
             
             next_logp_actions = next_mix_dist.log_probs(next_actions).sum(axis=-1, keepdim=True)
@@ -105,6 +119,8 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
             # train actors
             if self.args["algo"] in ["hasac", "igcsac"]:
                 actions = []
+                means = []
+                stddevs = []
                 logp_actions = []
                 for agent_id in range(self.num_agents):
                     action, logp_action = self.actor[
@@ -116,12 +132,24 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                         else None,
                         stochastic=self.algo_args["algo"]["add_random"],
                     )
+                    mean, stddev = self.actor[
+                        agent_id
+                    ].get_dist(
+                        sp_obs[agent_id],
+                        sp_available_actions[agent_id]
+                        if sp_available_actions is not None
+                        else None,
+                        stochastic=self.algo_args["algo"]["add_random"],
+                    )
                     actions.append(action)
+                    means.append(mean)
+                    stddevs.append(stddev)
                     logp_actions.append(logp_action)
-                actions = torch.stack(actions, dim=1)
-                bias_, action_std = self.action_attention(actions, torch.unsqueeze(check(sp_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
+                means = torch.stack(means, dim=1)
+                stddevs = torch.stack(stddevs, dim=1)
+                bias_, action_std = self.action_attention(means, torch.unsqueeze(check(sp_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
                 # ind_dist = FixedNormal(logits, stds)
-                mix_dist = FixedNormal(actions, self.threshold*action_std)
+                mix_dist = FixedNormal(means, self.threshold*action_std + (1-self.threshold)*stddevs)
                 actions = mix_dist.rsample()
                 logp_actions = mix_dist.log_probs(actions).sum(axis=-1, keepdim=True)
                 logp_actions -= (2 * (np.log(2) - actions - F.softplus(-2 * actions))).sum(
