@@ -610,7 +610,7 @@ class OffPolicyBaseRunner:
         eval_obs, eval_share_obs, eval_available_actions = self.eval_envs.reset()
 
         while True:
-            eval_actions = self.get_actions(
+            eval_actions, _, _ = self.get_actions(
                 eval_obs, available_actions=eval_available_actions, add_random=False
             )
             (
