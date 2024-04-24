@@ -22,7 +22,10 @@ env_REGISTRY["manyagent_swimmer"] = partial(env_fn, env=ManyAgentSwimmerEnv)
 class NormalizedActions(gym.ActionWrapper):
     def _action(self, action):
         action = (action + 1) / 2
-        action *= self.action_space.high - self.action_space.low
+        try:
+            action *= self.action_space.high - self.action_space.low
+        except Exception:
+            raise ValueError
         action += self.action_space.low
         return action
 

@@ -71,7 +71,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
             next_stddevs = torch.stack(next_stddevs, dim=1)
             bias_, next_action_std = self.action_attention(next_means, torch.unsqueeze(check(sp_next_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
             # ind_dist = FixedNormal(logits, stds)
-            next_mix_dist = FixedNormal(next_means, self.threshold*next_action_std + (1-self.threshold)*next_stddevs)
+            next_mix_dist = FixedNormal(next_means, torch.sqrt((self.threshold)*(next_action_std**2) + (1-self.threshold)*(next_stddevs**2)))
             next_actions = next_mix_dist.sample()
             
             next_logp_actions = next_mix_dist.log_probs(next_actions).sum(axis=-1, keepdim=True)
@@ -149,7 +149,7 @@ class OffPolicyMARunner(OffPolicyBaseRunner):
                 stddevs = torch.stack(stddevs, dim=1)
                 bias_, action_std = self.action_attention(means, torch.unsqueeze(check(sp_share_obs).to(self.device), 1).repeat(1, self.num_agents, 1))
                 # ind_dist = FixedNormal(logits, stds)
-                mix_dist = FixedNormal(means, self.threshold*action_std + (1-self.threshold)*stddevs)
+                mix_dist = FixedNormal(means, torch.sqrt((self.threshold)*(action_std**2) + (1-self.threshold)*(stddevs**2)))
                 actions = mix_dist.rsample()
                 logp_actions = mix_dist.log_probs(actions).sum(axis=-1, keepdim=True)
                 logp_actions -= (2 * (np.log(2) - actions - F.softplus(-2 * actions))).sum(

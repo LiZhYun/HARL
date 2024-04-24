@@ -254,7 +254,7 @@ class OffPolicyBaseRunner:
 
             bias_, action_std = self.action_attention(means, share_obs)
             # ind_dist = FixedNormal(logits, stds)
-            mix_dist = FixedNormal(check(means).to(self.device), self.threshold*action_std + (1-self.threshold)*check(stddevs).to(self.device))
+            mix_dist = FixedNormal(check(means).to(self.device), torch.sqrt((self.threshold)*(action_std**2) + (1-self.threshold)*check(stddevs**2).to(self.device)))
             actions = mix_dist.rsample()
             actions = torch.tanh(actions)
             actions = _t2n(self.act_limit * actions)
@@ -578,9 +578,9 @@ class OffPolicyBaseRunner:
             stddevs = []
             for agent_id in range(self.num_agents):
                 actions.append(
-                    _t2n(self.actor[agent_id].get_actions(obs[:, agent_id], add_random))
+                    _t2n(self.actor[agent_id].get_actions(obs[:, agent_id], stochastic=add_random))
                 )
-                mean, stddev = map(_t2n, self.actor[agent_id].get_dist(obs[:, agent_id], add_random))
+                mean, stddev = map(_t2n, self.actor[agent_id].get_dist(obs[:, agent_id], stochastic=add_random))
                 means.append(mean)
                 stddevs.append(stddev)
         return np.array(actions).transpose(1, 0, 2), np.array(means).transpose(1, 0, 2), np.array(stddevs).transpose(1, 0, 2)
