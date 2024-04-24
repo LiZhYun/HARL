@@ -94,7 +94,7 @@ algo:
   # whether to use a fixed optimisation order
   fixed_order: False
   attention_freq: 1
-  add_random: True
+  add_random: False
   decay_id: 0
 logger:
   # logging directory
